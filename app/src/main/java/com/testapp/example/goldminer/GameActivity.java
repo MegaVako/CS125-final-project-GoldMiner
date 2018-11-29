@@ -1,12 +1,12 @@
 package com.testapp.example.goldminer;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Handler;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -14,7 +14,7 @@ import android.view.View;
  * An example full-screen activity that shows and hides the system UI (i.e.
  * status bar and navigation/system bar) with user interaction.
  */
-public class MainActivity extends AppCompatActivity {
+public class GameActivity extends AppCompatActivity {
     /**
      * Whether or not the system UI should be auto-hidden after
      * {@link #AUTO_HIDE_DELAY_MILLIS} milliseconds.
@@ -34,7 +34,6 @@ public class MainActivity extends AppCompatActivity {
     private static final int UI_ANIMATION_DELAY = 300;
     private final Handler mHideHandler = new Handler();
     private View mContentView;
-    private static final String TAG = "GoldMiner/main";
     private final Runnable mHidePart2Runnable = new Runnable() {
         @SuppressLint("InlinedApi")
         @Override
@@ -90,7 +89,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_game);
 
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
@@ -102,17 +101,13 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 toggle();
-                Log.i(TAG, "onClick screen from main");
-                Intent intent = GameActivity.createIntent(MainActivity.this);
-                startActivity(intent);
             }
-
         });
 
         // Upon interacting with UI controls, delay any scheduled hide()
         // operations to prevent the jarring behavior of controls going away
         // while interacting with the UI.
-        //findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
+        findViewById(R.id.dummy_button).setOnTouchListener(mDelayHideTouchListener);
     }
 
     @Override
@@ -166,5 +161,10 @@ public class MainActivity extends AppCompatActivity {
     private void delayedHide(int delayMillis) {
         mHideHandler.removeCallbacks(mHideRunnable);
         mHideHandler.postDelayed(mHideRunnable, delayMillis);
+    }
+
+    public static Intent createIntent(Context previousActivity) {
+        Intent change = new Intent(previousActivity, GameActivity.class);
+        return change;
     }
 }
