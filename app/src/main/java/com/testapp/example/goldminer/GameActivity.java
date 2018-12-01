@@ -65,10 +65,9 @@ public class GameActivity extends AppCompatActivity {
     private void setScreenSize() {
         try {
             WindowManager wm = getWindowManager();
-            Display dispaly = wm.getDefaultDisplay();
+            Display display = wm.getDefaultDisplay();
             Point size = new Point();
-            dispaly.getSize(size);
-
+            display.getSize(size);
             screenHeight = size.y;
             screenWidth = size.x;
         } catch (Exception e) {

@@ -12,10 +12,9 @@
         android:id= "@+id/frame"
         android:background="#0099cc">
         <com.testapp.example.goldminer.GameView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_width="fill_parent"
+            android:layout_height="fill_parent"
             android:id="@+id/canvas"/>
-
     </FrameLayout>
 
 </android.support.constraint.ConstraintLayout>

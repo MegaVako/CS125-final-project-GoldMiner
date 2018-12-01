@@ -29,8 +29,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="180dp"
-            android:layout_marginLeft="220dp"
+            android:layout_marginTop="230dp"
+            android:layout_marginLeft="270dp"
             android:text="@string/main_message"/>
         <LinearLayout
             android:id="@+id/fullscreen_content_controls"
