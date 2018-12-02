@@ -13,6 +13,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.TextView;
 
 public class GameView extends View {
     private static final int MAXIMUM_NUMBER_OF_STONES = 8;
@@ -29,7 +30,6 @@ public class GameView extends View {
     private static final int HOOK_RADIUS = 30;
     private static final int REFRESH_RATE = 20; //ms
 
-
     private Bitmap mBitmap;
     private Canvas mCanvas;
     private Paint mPaint;
@@ -38,21 +38,38 @@ public class GameView extends View {
     private final Rect miner = new Rect(MINER_LEFT, MINER_TOP, MINER_LEFT + MINER_WIDTH, MINER_LENGTH);
     private float hookPositionX = 800;
     private float hookPositionY = 50;
+    /** Time tracking textView */
+    private TextView timeTrackingTextView;
+    /** timeTracker for hook Position */
     private double timeTracker = 0;
+
+    /** Hook speed */
     private double direction = 0.01;
+
+    /** timeCounter for timer on screen */
+    private int timeCounter = 20;
+
+    /** Track moving */
+    private boolean isMoving = false;
+
+    /** Track extending hook */
+    private boolean isExtending = false;
 
     public GameView(Context context) {
         super(context);
         init();
-
     }
     public GameView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
         init();
+        timeTrackingTextView = findViewById(R.id.timeTracker);
+        Log.i(TAG, "GameView: check timeTrackingTextView " + timeTrackingTextView);
+        timeTrackingTextView.setText(String.valueOf(timeCounter));
     }
     private void init() {
         initPaint();
         initStones();
+        setInitTimeCounter();
     }
     @Override
     protected void onDraw(Canvas canvas) {
@@ -101,8 +118,12 @@ public class GameView extends View {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
-        movePlayer0Runnable.run();
-        Log.i(TAG, "onTouchEvent: do");
+        if (!isMoving && timeCounter > 0) {
+            movementRunnable.run();
+            Log.i(TAG, "onTouchEvent: do");
+        } else if (isMoving && timeCounter > 0) {
+
+        }
         return true;
     }
     private void doMovement() {
@@ -119,16 +140,40 @@ public class GameView extends View {
         if (timeTracker >= 2 * Math.PI) {
             timeTracker = 0;
         }
-        Log.d(TAG, "doMovement: tempX --> " + tempX);
-        Log.d(TAG, "doMovement: hpX/hpY -- > " + hookPositionX + "/" + hookPositionY) ;
+        //Log.d(TAG, "doMovement: hpX/hpY -- > " + hookPositionX + "/" + hookPositionY) ;
     }
 
+    //Animation stuff
+    /**
+     * Call any necessary methods under run()
+     */
     private Handler handler = new Handler(Looper.getMainLooper());
-    Runnable movePlayer0Runnable = new Runnable(){
+    Runnable movementRunnable = new Runnable(){
         public void run(){
-            doMovement();
+            //Put your methods here
+            doMovement(); //do hook movement
+            if (!isExtending) {
+                //Put extend hook code here
+            }
+            //calculateTime();
             invalidate(); //will trigger the onDraw
             handler.postDelayed(this, REFRESH_RATE);
         }
     };
+
+    private void calculateTime() {
+        int temp = (int) Math.abs(timeTracker / direction);
+        if ((temp * REFRESH_RATE) % 1000 == 0) {
+            timeCounter--;
+            timeTrackingTextView.setText(String.valueOf(timeCounter));
+            Log.d(TAG, "calculateTime: " + timeCounter);
+        }
+        if (temp == 0) {
+            handler.removeCallbacks(movementRunnable);
+        }
+    }
+
+    private void setInitTimeCounter() {
+        timeCounter = 20;
+    }
 }
