@@ -15,13 +15,15 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+
 public class GameView extends View {
-    private static final int MAXIMUM_NUMBER_OF_STONES = 8;
+    private static final int MAXIMUM_NUMBER_OF_BLOCKS = 8;
     private static final int STONE_TOP_BOUND = 700;
     private static final int STONE_SPACE = 200;
     private static final int STONE_LEFT_BOUND = 10;
     private static final int STONE_WIDTH_MAXIMUM = 90;
-    private static final int STONE_HEIGHT_MAXIMUM = 50;
+    private static final int STONE_HEIGHT_MAXIMUM = 100;
     private static final int STONE_HEIGHT_MAXIMUM_DEVIATION = 200;
     private static final int MINER_LEFT = 800;
     private static final int MINER_WIDTH = 200;
@@ -29,16 +31,19 @@ public class GameView extends View {
     private static final int MINER_LENGTH = 80;
     private static final int HOOK_RADIUS = 30;
     private static final int REFRESH_RATE = 20; //ms
-    private static final double HOOK_SWING_RATE = 0.01;
+    private static final double HOOK_SWING_RATE = (Math.PI/100);
     private static final double HOOK_EXTEND_RATE = 0.1;
     private static final double GAME_TIME_COUNTER_RATE = 0.01;
-
+    private static final float SWING_INDEX = (float) (100 * HOOK_SWING_RATE);
+    private static final Rect miner = new Rect(MINER_LEFT, MINER_TOP, MINER_LEFT + MINER_WIDTH, MINER_LENGTH);
+    private static final Rect BACKGROUND = new Rect(0, 0, 2000,2000);
+    private static final int HOOK_INIT_Y = 50;
     private Bitmap mBitmap;
     private Canvas mCanvas;
     private Paint mPaint;
     private String TAG = "GoldMiner/GameView";
-    private Rect[] stones = new Rect[MAXIMUM_NUMBER_OF_STONES];
-    private final Rect miner = new Rect(MINER_LEFT, MINER_TOP, MINER_LEFT + MINER_WIDTH, MINER_LENGTH);
+
+    private BlockData[] blocks = new BlockData[MAXIMUM_NUMBER_OF_BLOCKS];
     private float hookPositionX = 800;
     private float hookPositionY = 50;
     /** Time tracking textView */
@@ -48,14 +53,19 @@ public class GameView extends View {
     
     private int displayTime = 0;
 
-    private double slopeX = 0;
+    private static double slopeX = 0;
 
-    private double slopeY = 0;
+    private static double slopeY = 0;
 
     private hookStatus hook = hookStatus.stop;
 
-    private double firePositionX = 0;
     private double firePositionY = 0;
+    private double firePositionX = 0;
+
+    private static double screenHeight = 0;
+    private static double screenWidth = 0;
+
+    private ArrayList<BlockData> onPathBlock = new ArrayList<>();
 
     public GameView(Context context) {
         super(context);
@@ -76,21 +86,34 @@ public class GameView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        mPaint.setColor(Color.rgb(0,0,0));
-        canvas.drawRect((float)0, (float)0, (float)2000, (float)2000, mPaint);
-        mPaint.setColor(Color.rgb(250,214,0));
-        for (Rect rect : stones) {
-            canvas.drawRect(rect, mPaint);
+        mPaint.setColor(Color.BLACK);
+        canvas.drawRect(BACKGROUND, mPaint);
+        for (BlockData b : blocks) {
+            switch (b.getType()) {
+                case gold:
+                    mPaint.setColor(Color.rgb(250,214,0));
+                    break;
+                case stone:
+                    mPaint.setColor(Color.GRAY);
+                    break;
+                case mine:
+                    mPaint.setColor(Color.rgb(255, 0, 0));
+                    break;
+                case diamond:
+                    mPaint.setColor(Color.rgb(106, 213, 254));
+            }
+            canvas.drawRect(b.getBlock(), mPaint);
         }
         //Draw miner
         mPaint.setColor(Color.rgb(200,100,200));
         canvas.drawRect(miner, mPaint);
+        //Draw string from hook to miner center
+        mPaint.setStrokeWidth(4f);
+        mPaint.setColor(Color.rgb(255, 0, 0));
+        canvas.drawLine(hookPositionX, hookPositionY, (MINER_LEFT + MINER_WIDTH/2), MINER_TOP, mPaint);
         //Draw hook
         mPaint.setColor(Color.rgb(255,255,255));
         canvas.drawCircle(hookPositionX, hookPositionY, HOOK_RADIUS, mPaint);
-        //Draw hook to miner center
-        mPaint.setColor(Color.rgb(255, 0, 0));
-        canvas.drawLine(hookPositionX, hookPositionY, (MINER_LEFT + MINER_WIDTH/2), MINER_TOP, mPaint);
     }
     @Override
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
@@ -99,16 +122,16 @@ public class GameView extends View {
         mCanvas = new Canvas(mBitmap);
     }
     private void initStones() {
-        for (int i = 0; i < stones.length; i++) {
+        for (int i = 0; i < blocks.length; i++) {
             int temp = (int) (Math.random() * STONE_HEIGHT_MAXIMUM_DEVIATION);
             if (temp % 2 == 0) {
                 temp = -temp;
             }
-            stones[i] = new Rect(
-                    STONE_SPACE * i + STONE_LEFT_BOUND + temp,
-                    STONE_TOP_BOUND + temp,
-                    STONE_SPACE * i + STONE_WIDTH_MAXIMUM + STONE_LEFT_BOUND + temp,
-                    STONE_TOP_BOUND + STONE_HEIGHT_MAXIMUM + temp);
+            int left = STONE_SPACE * i + STONE_LEFT_BOUND + temp;
+            int top = STONE_TOP_BOUND + temp;
+            int right = STONE_SPACE * i + STONE_WIDTH_MAXIMUM + STONE_LEFT_BOUND + temp;
+            int bot = STONE_TOP_BOUND + STONE_HEIGHT_MAXIMUM + temp;
+            blocks[i] = new Block(left, top, right, bot);
             Log.i(TAG, "initStones: temp/dev = " + temp);
         }
     }
@@ -128,39 +151,29 @@ public class GameView extends View {
         }
         if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
             if (hook == hookStatus.stop && displayTime > 0) {
+                setScreenSize();
                 movementRunnable.run();
                 hook = hookStatus.swinging;
                 return true;
             } else if (hook == hookStatus.swinging && displayTime > 0) {
                     setExtendSlope();
                     setFirePosition();
+                    setOnPathBlock();
+                    if (onPathBlock.size() == 0) {
+                        Log.d(TAG, "onTouchEvent: nothing is on my path");
+                    } else {
+                        BlockData b = onPathBlock.get(0);
+                        Log.d(TAG, "onTouchEvent: this is on my path --> x/y "
+                                + b.getPositionX() + "/" + b.getPositionY());
+                    }
                     hook = hookStatus.extending;
-
                 return true;
             } else {
-                //isMoving = false;
                 return false;
             }
         } else {
             return false;
         }
-    }
-    private double onSwing(double swingCounter) {
-        float tempX = (float) (Math.sin(swingCounter));
-        float tempY = (float) (Math.cos(swingCounter));
-        hookPositionX += tempX;
-        if (swingCounter > Math.PI) {
-            hookPositionY -= tempY;
-        } else {
-            hookPositionY += tempY;
-        }
-        //y = sqrt(radius - x^2)
-        swingCounter += HOOK_SWING_RATE;
-        if (swingCounter >= 2 * Math.PI) {
-            swingCounter = 0;
-        }
-        return swingCounter;
-        //Log.d(TAG, "doMovement: hpX/hpY -- > " + hookPositionX + "/" + hookPositionY) ;
     }
 
     //Animation stuff
@@ -197,7 +210,27 @@ public class GameView extends View {
             Log.d(TAG, "calculateTime: " +  displayTime);
         }
     }
-
+    private double onSwing(double swingCounter) {
+        float tempX = (float) (Math.sin(swingCounter));
+        float tempY = (float) (Math.cos(swingCounter));
+        //too much temp values --> need to fix
+        float tempIndex = (float) (MINER_LENGTH / (22));
+        hookPositionX += tempIndex * tempX;
+        if (swingCounter >= Math.PI) {
+            hookPositionY -= tempIndex * tempY;
+        } else {
+            hookPositionY += tempIndex * tempY;
+        }
+        //y = sqrt(radius - x^2)
+        swingCounter += HOOK_SWING_RATE;
+        if (swingCounter >= 2 * Math.PI) {
+            swingCounter = 0;
+            hookPositionY = HOOK_INIT_Y;
+            Log.i(TAG, "onSwing: hookX/Y" + hookPositionX + "/" + hookPositionY);
+        }
+        return swingCounter;
+        //Log.d(TAG, "doMovement: hpX/hpY -- > " + hookPositionX + "/" + hookPositionY) ;
+    }
     private double onExtend(double extendCounter) {
         if (hook == hookStatus.extending) {
             hookPositionX += (HOOK_EXTEND_RATE * slopeX);
@@ -206,7 +239,7 @@ public class GameView extends View {
             hookPositionX -= (HOOK_EXTEND_RATE * slopeX);
             hookPositionY -= (HOOK_EXTEND_RATE * slopeY);
         }
-        if ((hookPositionY > 1200 || hookPositionX < 0) || (hookPositionX < 0 || hookPositionX > 1960)) {
+        if ((hookPositionY > screenHeight || hookPositionX < 0) || (hookPositionX < 0 || hookPositionX > screenWidth)) {
             hook = hookStatus.retracting;
         }
         if (hookPositionY <= firePositionY) {
@@ -216,7 +249,7 @@ public class GameView extends View {
     }
 
     private void setInitTimeCounter() {
-        displayTime = 20;
+        displayTime = 100;
     }
 
     private void setExtendSlope() {
@@ -230,7 +263,46 @@ public class GameView extends View {
     }
 
     private void setFirePosition() {
-        firePositionX = hookPositionX;
         firePositionY = hookPositionY;
+        firePositionX = hookPositionX;
+    }
+
+    private void setScreenSize() {
+        double temp[] = GameActivity.getScreenSize();
+        screenWidth = temp[0];
+        screenHeight = temp[1];
+    }
+    private void setOnPathBlock() {
+        onPathBlock.clear();
+        for (BlockData b : blocks) {
+            if (b.isOnPath()) {
+                onPathBlock.add(b);
+            }
+        }
+        if (onPathBlock.size() > 1) {
+            double smallestY = onPathBlock.get(0).getPositionY();
+            BlockData closest = onPathBlock.get(0);
+            for (BlockData b : onPathBlock) {
+                if (b.getPositionY() < smallestY) {
+                    closest = b;
+                }
+            }
+            onPathBlock.clear();
+            onPathBlock.add(closest);
+        }
+    }
+    public static double getOnPathRange() {
+        return (screenHeight - MINER_TOP) / (slopeY / slopeX);
+    }
+
+    public static double getMinerCenter() {
+        return (MINER_LEFT + MINER_WIDTH/2);
+    }
+
+    public static double getOnPathSlope() {
+        return (slopeY / slopeX);
+    }
+    public static double getHookRadius() {
+        return HOOK_RADIUS;
     }
 }

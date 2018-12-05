@@ -30,7 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="230dp"
-            android:layout_marginLeft="270dp"
+            android:layout_marginLeft="280dp"
             android:text="@string/main_message"/>
         <LinearLayout
             android:id="@+id/fullscreen_content_controls"
