@@ -29,6 +29,9 @@ public class GameView extends View {
     private static final int MINER_LENGTH = 80;
     private static final int HOOK_RADIUS = 30;
     private static final int REFRESH_RATE = 20; //ms
+    private static final double HOOK_SWING_RATE = 0.01;
+    private static final double HOOK_EXTEND_RATE = 0.1;
+    private static final double GAME_TIME_COUNTER_RATE = 0.01;
 
     private Bitmap mBitmap;
     private Canvas mCanvas;
@@ -40,20 +43,19 @@ public class GameView extends View {
     private float hookPositionY = 50;
     /** Time tracking textView */
     private TextView timeTrackingTextView;
-    /** timeTracker for hook Position */
-    private double timeTracker = 0;
 
-    /** Hook speed */
-    private double direction = 0.01;
+    private double gameTimeCounter = 0;
+    
+    private int displayTime = 0;
 
-    /** timeCounter for timer on screen */
-    private int timeCounter = 20;
+    private double slopeX = 0;
 
-    /** Track moving */
-    private boolean isMoving = false;
+    private double slopeY = 0;
 
-    /** Track extending hook */
-    private boolean isExtending = false;
+    private hookStatus hook = hookStatus.stop;
+
+    private double firePositionX = 0;
+    private double firePositionY = 0;
 
     public GameView(Context context) {
         super(context);
@@ -64,7 +66,7 @@ public class GameView extends View {
         init();
         timeTrackingTextView = findViewById(R.id.timeTracker);
         Log.i(TAG, "GameView: check timeTrackingTextView " + timeTrackingTextView);
-        timeTrackingTextView.setText(String.valueOf(timeCounter));
+        timeTrackingTextView.setText(String.valueOf(gameTimeCounter));
     }
     private void init() {
         initPaint();
@@ -74,7 +76,6 @@ public class GameView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        Log.i(TAG, "onDraw");
         mPaint.setColor(Color.rgb(0,0,0));
         canvas.drawRect((float)0, (float)0, (float)2000, (float)2000, mPaint);
         mPaint.setColor(Color.rgb(250,214,0));
@@ -87,6 +88,9 @@ public class GameView extends View {
         //Draw hook
         mPaint.setColor(Color.rgb(255,255,255));
         canvas.drawCircle(hookPositionX, hookPositionY, HOOK_RADIUS, mPaint);
+        //Draw hook to miner center
+        mPaint.setColor(Color.rgb(255, 0, 0));
+        canvas.drawLine(hookPositionX, hookPositionY, (MINER_LEFT + MINER_WIDTH/2), MINER_TOP, mPaint);
     }
     @Override
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
@@ -118,28 +122,44 @@ public class GameView extends View {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent) {
-        if (!isMoving && timeCounter > 0) {
-            movementRunnable.run();
-            Log.i(TAG, "onTouchEvent: do");
-        } else if (isMoving && timeCounter > 0) {
-
+        Log.i(TAG, "onTouchEvent: clicked called");
+        if (displayTime <= 0) {
+            return false;
         }
-        return true;
+        if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+            if (hook == hookStatus.stop && displayTime > 0) {
+                movementRunnable.run();
+                hook = hookStatus.swinging;
+                return true;
+            } else if (hook == hookStatus.swinging && displayTime > 0) {
+                    setExtendSlope();
+                    setFirePosition();
+                    hook = hookStatus.extending;
+
+                return true;
+            } else {
+                //isMoving = false;
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
-    private void doMovement() {
-        float tempX = (float) (Math.sin(timeTracker));
-        float tempY = (float) (Math.cos(timeTracker));
+    private double onSwing(double swingCounter) {
+        float tempX = (float) (Math.sin(swingCounter));
+        float tempY = (float) (Math.cos(swingCounter));
         hookPositionX += tempX;
-        if (timeTracker > Math.PI) {
+        if (swingCounter > Math.PI) {
             hookPositionY -= tempY;
         } else {
             hookPositionY += tempY;
         }
         //y = sqrt(radius - x^2)
-        timeTracker += direction;
-        if (timeTracker >= 2 * Math.PI) {
-            timeTracker = 0;
+        swingCounter += HOOK_SWING_RATE;
+        if (swingCounter >= 2 * Math.PI) {
+            swingCounter = 0;
         }
+        return swingCounter;
         //Log.d(TAG, "doMovement: hpX/hpY -- > " + hookPositionX + "/" + hookPositionY) ;
     }
 
@@ -149,31 +169,68 @@ public class GameView extends View {
      */
     private Handler handler = new Handler(Looper.getMainLooper());
     Runnable movementRunnable = new Runnable(){
+        double swingTimeCounter = 0;
+        double extendTimeCounter = 0;
         public void run(){
-            //Put your methods here
-            doMovement(); //do hook movement
-            if (!isExtending) {
-                //Put extend hook code here
+            gameTimeCounter += GAME_TIME_COUNTER_RATE;
+            if (hook == hookStatus.swinging) {
+                swingTimeCounter = onSwing(swingTimeCounter); //do hook movement
+            } else if (hook == hookStatus.extending || hook == hookStatus.retracting) {
+                extendTimeCounter = onExtend(extendTimeCounter);
             }
-            //calculateTime();
+            calculateTime();
             invalidate(); //will trigger the onDraw
-            handler.postDelayed(this, REFRESH_RATE);
+            if (displayTime > 0) {
+                handler.postDelayed(this, REFRESH_RATE);
+            } else {
+                Log.d(TAG, "calculateTime: time is up");
+                handler.removeCallbacks(movementRunnable);
+            }
         }
     };
 
     private void calculateTime() {
-        int temp = (int) Math.abs(timeTracker / direction);
+        int temp = (int) Math.abs(gameTimeCounter / GAME_TIME_COUNTER_RATE);
         if ((temp * REFRESH_RATE) % 1000 == 0) {
-            timeCounter--;
-            timeTrackingTextView.setText(String.valueOf(timeCounter));
-            Log.d(TAG, "calculateTime: " + timeCounter);
-        }
-        if (temp == 0) {
-            handler.removeCallbacks(movementRunnable);
+            displayTime--;
+            //timeTrackingTextView.setText(String.valueOf(timeCounter));
+            Log.d(TAG, "calculateTime: " +  displayTime);
         }
     }
 
+    private double onExtend(double extendCounter) {
+        if (hook == hookStatus.extending) {
+            hookPositionX += (HOOK_EXTEND_RATE * slopeX);
+            hookPositionY += (HOOK_EXTEND_RATE * slopeY);
+        } else if (hook == hookStatus.retracting) {
+            hookPositionX -= (HOOK_EXTEND_RATE * slopeX);
+            hookPositionY -= (HOOK_EXTEND_RATE * slopeY);
+        }
+        if ((hookPositionY > 1200 || hookPositionX < 0) || (hookPositionX < 0 || hookPositionX > 1960)) {
+            hook = hookStatus.retracting;
+        }
+        if (hookPositionY <= firePositionY) {
+            hook = hookStatus.swinging;
+        }
+        return extendCounter;
+    }
+
     private void setInitTimeCounter() {
-        timeCounter = 20;
+        displayTime = 20;
+    }
+
+    private void setExtendSlope() {
+        slopeX = (hookPositionX - (MINER_LEFT + MINER_WIDTH/2));
+        slopeY = (hookPositionY - MINER_TOP);
+        Log.d(TAG, "setExtendSlope: slopeX/slopeY = " + slopeX + "/" + slopeY);
+    }
+
+    private enum hookStatus {
+        extending, retracting, swinging, stop
+    }
+
+    private void setFirePosition() {
+        firePositionX = hookPositionX;
+        firePositionY = hookPositionY;
     }
 }
