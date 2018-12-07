@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0099cc"
+    android:background="#FFFF"
     tools:context=".MainActivity">
 
     <!-- The primary full-screen view. This can be replaced with whatever view
@@ -16,7 +16,7 @@
         android:gravity="center"
         android:keepScreenOn="true"
         android:text="@string/app_name"
-        android:textColor="#33b5e5"
+        android:textColor="#fcca00"
         android:textSize="50sp"
         android:textStyle="bold" />
 
@@ -30,7 +30,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="230dp"
-            android:layout_marginLeft="280dp"
+            android:layout_marginLeft="290dp"
+            android:textColor="#000000"
             android:text="@string/main_message"/>
         <LinearLayout
             android:id="@+id/fullscreen_content_controls"

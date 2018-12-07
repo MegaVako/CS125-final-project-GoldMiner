@@ -38,12 +38,15 @@ public class GameView extends View {
     private static final Rect miner = new Rect(MINER_LEFT, MINER_TOP, MINER_LEFT + MINER_WIDTH, MINER_LENGTH);
     private static final Rect BACKGROUND = new Rect(0, 0, 2000,2000);
     private static final int HOOK_INIT_Y = 50;
+    private static final int HOOK_INIT_X = 800;
+
     private Bitmap mBitmap;
     private Canvas mCanvas;
     private Paint mPaint;
     private String TAG = "GoldMiner/GameView";
 
-    private BlockData[] blocks = new BlockData[MAXIMUM_NUMBER_OF_BLOCKS];
+    private ArrayList<BlockData> blocks = new ArrayList<>(MAXIMUM_NUMBER_OF_BLOCKS);
+    private Rect capturedBlock = new Rect(1,2,3,4);
     private float hookPositionX = 800;
     private float hookPositionY = 50;
     /** Time tracking textView */
@@ -59,11 +62,13 @@ public class GameView extends View {
 
     private hookStatus hook = hookStatus.stop;
 
-    private double firePositionY = 0;
-    private double firePositionX = 0;
+    private static double firePositionY = 0;
+    private static double firePositionX = 0;
 
     private static double screenHeight = 0;
     private static double screenWidth = 0;
+
+    private boolean isCaptured = false;
 
     private ArrayList<BlockData> onPathBlock = new ArrayList<>();
 
@@ -89,19 +94,7 @@ public class GameView extends View {
         mPaint.setColor(Color.BLACK);
         canvas.drawRect(BACKGROUND, mPaint);
         for (BlockData b : blocks) {
-            switch (b.getType()) {
-                case gold:
-                    mPaint.setColor(Color.rgb(250,214,0));
-                    break;
-                case stone:
-                    mPaint.setColor(Color.GRAY);
-                    break;
-                case mine:
-                    mPaint.setColor(Color.rgb(255, 0, 0));
-                    break;
-                case diamond:
-                    mPaint.setColor(Color.rgb(106, 213, 254));
-            }
+            mPaint.setColor(b.getColor());
             canvas.drawRect(b.getBlock(), mPaint);
         }
         //Draw miner
@@ -111,6 +104,11 @@ public class GameView extends View {
         mPaint.setStrokeWidth(4f);
         mPaint.setColor(Color.rgb(255, 0, 0));
         canvas.drawLine(hookPositionX, hookPositionY, (MINER_LEFT + MINER_WIDTH/2), MINER_TOP, mPaint);
+        //Draw captured block
+        if (isCaptured && onPathBlock.size() == 1) {
+            mPaint.setColor(onPathBlock.get(0).getColor());
+            canvas.drawRect(capturedBlock, mPaint);
+        }
         //Draw hook
         mPaint.setColor(Color.rgb(255,255,255));
         canvas.drawCircle(hookPositionX, hookPositionY, HOOK_RADIUS, mPaint);
@@ -122,7 +120,7 @@ public class GameView extends View {
         mCanvas = new Canvas(mBitmap);
     }
     private void initStones() {
-        for (int i = 0; i < blocks.length; i++) {
+        for (int i = 0; i < MAXIMUM_NUMBER_OF_BLOCKS; i++) {
             int temp = (int) (Math.random() * STONE_HEIGHT_MAXIMUM_DEVIATION);
             if (temp % 2 == 0) {
                 temp = -temp;
@@ -131,7 +129,7 @@ public class GameView extends View {
             int top = STONE_TOP_BOUND + temp;
             int right = STONE_SPACE * i + STONE_WIDTH_MAXIMUM + STONE_LEFT_BOUND + temp;
             int bot = STONE_TOP_BOUND + STONE_HEIGHT_MAXIMUM + temp;
-            blocks[i] = new Block(left, top, right, bot);
+            blocks.add(new Block(left, top, right, bot));
             Log.i(TAG, "initStones: temp/dev = " + temp);
         }
     }
@@ -156,6 +154,8 @@ public class GameView extends View {
                 hook = hookStatus.swinging;
                 return true;
             } else if (hook == hookStatus.swinging && displayTime > 0) {
+                    isCaptured = false;
+                    onPathBlock.clear();
                     setExtendSlope();
                     setFirePosition();
                     setOnPathBlock();
@@ -225,7 +225,7 @@ public class GameView extends View {
         swingCounter += HOOK_SWING_RATE;
         if (swingCounter >= 2 * Math.PI) {
             swingCounter = 0;
-            hookPositionY = HOOK_INIT_Y;
+            onHookReCenter();
             Log.i(TAG, "onSwing: hookX/Y" + hookPositionX + "/" + hookPositionY);
         }
         return swingCounter;
@@ -233,17 +233,31 @@ public class GameView extends View {
     }
     private double onExtend(double extendCounter) {
         if (hook == hookStatus.extending) {
+            if (onPathBlock.size() == 1) {
+                if (!isCaptured && onGrab()) {
+                    isCaptured = true;
+                }
+            }
             hookPositionX += (HOOK_EXTEND_RATE * slopeX);
             hookPositionY += (HOOK_EXTEND_RATE * slopeY);
         } else if (hook == hookStatus.retracting) {
             hookPositionX -= (HOOK_EXTEND_RATE * slopeX);
             hookPositionY -= (HOOK_EXTEND_RATE * slopeY);
+            if (isCaptured) {
+                BlockData tempB = onPathBlock.get(0);
+                capturedBlock.set((int) hookPositionX, (int) hookPositionY,
+                        (int) (hookPositionX + tempB.getWidth()), (int) (hookPositionY + tempB.getHeight()));
+                Log.i(TAG, "onExtend: captured moving");
+            }
         }
         if ((hookPositionY > screenHeight || hookPositionX < 0) || (hookPositionX < 0 || hookPositionX > screenWidth)) {
             hook = hookStatus.retracting;
         }
         if (hookPositionY <= firePositionY) {
             hook = hookStatus.swinging;
+            isCaptured = false;
+            onPathBlock.clear();
+            Log.i(TAG, "onExtend: done retracting " + onPathBlock.size());
         }
         return extendCounter;
     }
@@ -291,6 +305,35 @@ public class GameView extends View {
             onPathBlock.add(closest);
         }
     }
+
+    private boolean onGrab() {
+        double distance = calculateDistance(onPathBlock.get(0));
+        if (distance <= HOOK_RADIUS + 50) {
+            Log.i(TAG, "onGrab: is grabbed");
+            hook = hookStatus.retracting;
+            for (BlockData b : blocks) {
+                if (b.equals(onPathBlock.get(0))) {
+                    blocks.remove(b);
+                    break;
+                }
+            }
+            return true;
+        }
+        Log.i(TAG, "onGrab: not hit d = " + distance);
+        return false;
+    }
+
+    private double calculateDistance(BlockData blockData) {
+        double distanceX = blockData.getCenterX() - hookPositionX;
+        double distanceY = blockData.getCenterY() - hookPositionY;
+        return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+    }
+
+    private void onHookReCenter() {
+        hookPositionY = HOOK_INIT_Y;
+        hookPositionX = HOOK_INIT_X;
+    }
+
     public static double getOnPathRange() {
         return (screenHeight - MINER_TOP) / (slopeY / slopeX);
     }
@@ -302,7 +345,8 @@ public class GameView extends View {
     public static double getOnPathSlope() {
         return (slopeY / slopeX);
     }
-    public static double getHookRadius() {
-        return HOOK_RADIUS;
+
+    public static double getFirePositionX() {
+        return firePositionX;
     }
 }
