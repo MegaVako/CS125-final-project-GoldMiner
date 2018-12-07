@@ -11,8 +11,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Button;
+import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -39,6 +42,10 @@ public class GameView extends View {
     private static final Rect BACKGROUND = new Rect(0, 0, 2000,2000);
     private static final int HOOK_INIT_Y = 50;
     private static final int HOOK_INIT_X = 800;
+    private static final int MINER_COLOR = Color.rgb(200,100,200);
+    private static final int HOOK_COLOR = Color.rgb(255,255,255);
+    private static final int HOOK_STRING_COLOR = Color.rgb(255,0, 0);
+    private static final int GAME_TIME = 10;
 
     private Bitmap mBitmap;
     private Canvas mCanvas;
@@ -50,7 +57,7 @@ public class GameView extends View {
     private float hookPositionX = 800;
     private float hookPositionY = 50;
     /** Time tracking textView */
-    private TextView timeTrackingTextView;
+
 
     private double gameTimeCounter = 0;
     
@@ -62,55 +69,77 @@ public class GameView extends View {
 
     private hookStatus hook = hookStatus.stop;
 
+    private int score = 0;
+
+    /** Record fire position X/Y */
     private static double firePositionY = 0;
     private static double firePositionX = 0;
 
+    /** Record screen size */
     private static double screenHeight = 0;
     private static double screenWidth = 0;
 
+    /** Indentify if captured block */
     private boolean isCaptured = false;
 
+    /** List of possible hit blocks. NOTE: ONLY BLOCK WITH LOWEST Y (TOP) WILL BE GRABBED */
     private ArrayList<BlockData> onPathBlock = new ArrayList<>();
 
-    public GameView(Context context) {
+    private Button pauseBtn;
+
+    private GameActivity gameActivity;
+
+    public GameView(Context context, GameActivity gameActivity) {
         super(context);
+        this.gameActivity = gameActivity;
         init();
+    }
+    public GameView(Context context, GameActivity gameActivity, int previousScore) {
+        super(context);
+        this.gameActivity = gameActivity;
+        init(previousScore);
     }
     public GameView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
         init();
-        timeTrackingTextView = findViewById(R.id.timeTracker);
-        Log.i(TAG, "GameView: check timeTrackingTextView " + timeTrackingTextView);
-        timeTrackingTextView.setText(String.valueOf(gameTimeCounter));
     }
     private void init() {
         initPaint();
         initStones();
         setInitTimeCounter();
     }
+    private void init(int score) {
+        init();
+        this.score = score;
+    }
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         mPaint.setColor(Color.BLACK);
         canvas.drawRect(BACKGROUND, mPaint);
+
+        //Draw blocks
         for (BlockData b : blocks) {
             mPaint.setColor(b.getColor());
             canvas.drawRect(b.getBlock(), mPaint);
         }
+
         //Draw miner
-        mPaint.setColor(Color.rgb(200,100,200));
+        mPaint.setColor(MINER_COLOR);
         canvas.drawRect(miner, mPaint);
         //Draw string from hook to miner center
-        mPaint.setStrokeWidth(4f);
-        mPaint.setColor(Color.rgb(255, 0, 0));
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setColor(HOOK_STRING_COLOR);
         canvas.drawLine(hookPositionX, hookPositionY, (MINER_LEFT + MINER_WIDTH/2), MINER_TOP, mPaint);
+
         //Draw captured block
         if (isCaptured && onPathBlock.size() == 1) {
             mPaint.setColor(onPathBlock.get(0).getColor());
             canvas.drawRect(capturedBlock, mPaint);
         }
+
         //Draw hook
-        mPaint.setColor(Color.rgb(255,255,255));
+        mPaint.setColor(HOOK_COLOR);
         canvas.drawCircle(hookPositionX, hookPositionY, HOOK_RADIUS, mPaint);
     }
     @Override
@@ -197,7 +226,7 @@ public class GameView extends View {
                 handler.postDelayed(this, REFRESH_RATE);
             } else {
                 Log.d(TAG, "calculateTime: time is up");
-                handler.removeCallbacks(movementRunnable);
+                onFinishGame();
             }
         }
     };
@@ -206,8 +235,12 @@ public class GameView extends View {
         int temp = (int) Math.abs(gameTimeCounter / GAME_TIME_COUNTER_RATE);
         if ((temp * REFRESH_RATE) % 1000 == 0) {
             displayTime--;
-            //timeTrackingTextView.setText(String.valueOf(timeCounter));
+            //NULL POINTER !!
+            //gameActivity.setTimerText(displayTime);
             Log.d(TAG, "calculateTime: " +  displayTime);
+            if (displayTime < 0) {
+                onFinishGame();
+            }
         }
     }
     private double onSwing(double swingCounter) {
@@ -254,16 +287,18 @@ public class GameView extends View {
             hook = hookStatus.retracting;
         }
         if (hookPositionY <= firePositionY) {
-            hook = hookStatus.swinging;
-            isCaptured = false;
-            onPathBlock.clear();
-            Log.i(TAG, "onExtend: done retracting " + onPathBlock.size());
+            onReturnToSwing();
+            if (blocks.size() == 0) {
+                //Game is finished
+                Log.i(TAG, "onExtend: Game is over// win");
+                onFinishGame();
+            }
         }
         return extendCounter;
     }
 
     private void setInitTimeCounter() {
-        displayTime = 100;
+        displayTime = GAME_TIME;
     }
 
     private void setExtendSlope() {
@@ -328,12 +363,30 @@ public class GameView extends View {
         double distanceY = blockData.getCenterY() - hookPositionY;
         return Math.sqrt(distanceX * distanceX + distanceY * distanceY);
     }
-
+    private void onReturnToSwing() {
+        hook = hookStatus.swinging;
+        isCaptured = false;
+        onPathBlock.clear();
+        Log.i(TAG, "onExtend: done retracting " + onPathBlock.size());
+    }
     private void onHookReCenter() {
         hookPositionY = HOOK_INIT_Y;
         hookPositionX = HOOK_INIT_X;
     }
-
+    private void onFinishGame() {
+        try {
+            gameActivity.onPopup(gameActivity);
+            handler.removeCallbacks(movementRunnable);
+        } catch (NullPointerException e) {
+            Log.d(TAG, "onFinishGame: nullPointer GA = " + gameActivity + e.getMessage());
+        }
+    }
+    private void setScore(int score) {
+        this.score = score;
+    }
+    public int getScore() {
+        return score;
+    }
     public static double getOnPathRange() {
         return (screenHeight - MINER_TOP) / (slopeY / slopeX);
     }

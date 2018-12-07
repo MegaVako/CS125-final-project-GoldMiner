@@ -30,7 +30,7 @@ public class Block implements BlockData {
         this.right = right;
         this.bot = bot;
         setBlockType();
-        currentBlock = new Rect(this.left, this.top, this.right, this.bot);
+        setBlock();
     }
     @Override
     public double getPositionX() {
@@ -88,7 +88,7 @@ public class Block implements BlockData {
                 return false;
             }
         }
-        if (Math.abs(slope) > 5) {
+        if (Math.abs(slope) > 4) {
             double fromFirePosition = Math.abs(hookFirePositionX - (right + left) / 2);
             if (fromFirePosition < ON_PATH_RANGE_STRAIGHT) {
                 return true;
@@ -150,5 +150,8 @@ public class Block implements BlockData {
     }
     public enum type {
         gold, stone, diamond, mine
+    }
+    private void setBlock() {
+        currentBlock = new Rect(left, top, right, bot);
     }
 }
