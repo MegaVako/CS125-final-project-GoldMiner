@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.PopupWindow;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
@@ -30,14 +31,13 @@ public class GameActivity extends AppCompatActivity {
     private PopupWindow popupWindow;
     private static GameActivity gameActivity;
     private TextView timeTrackingTextView;
+    private ImageButton pauseBtn;
     //==============================================================
     // ## My variables ##
     //==============================================================
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        gameActivity = GameActivity.this;
-        gameView = (GameView) findViewById(R.id.canvas);
-        timeTrackingTextView = (TextView) findViewById(R.id.displayTimeText);
+
         View decorView = getWindow().getDecorView();
         // Hide the status bar.
         int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
@@ -52,10 +52,16 @@ public class GameActivity extends AppCompatActivity {
         } catch (NullPointerException e) {
             Log.i(TAG, "actionBar is null, " + e.getMessage());
         }
+
         super.onCreate(savedInstanceState);
         gameView = new GameView(this, this);
         setContentView(gameView);
         setScreenSize();
+
+        gameActivity = GameActivity.this;
+        //pauseBtn = (ImageButton) findViewById(R.id.onPause);
+        timeTrackingTextView = (TextView) findViewById(R.id.displayTimeText);
+        Log.i(TAG, "onCreate: check pauseBtn " + pauseBtn);
     }
 
     private void setScreenSize() {

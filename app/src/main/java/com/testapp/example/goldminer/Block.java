@@ -88,8 +88,8 @@ public class Block implements BlockData {
                 return false;
             }
         }
-        if (Math.abs(slope) > 4) {
-            double fromFirePosition = Math.abs(hookFirePositionX - (right + left) / 2);
+        if (Math.abs(slope) > 3.5) {
+            double fromFirePosition = Math.abs(hookFirePositionX - getCenterX());
             if (fromFirePosition < ON_PATH_RANGE_STRAIGHT) {
                 return true;
             }
@@ -120,7 +120,7 @@ public class Block implements BlockData {
         }
         Log.d(TAG, "isOnPath: pass one");
         double checker = Math.abs(slope * (distanceToMincerCenter));
-        double checkFrom = Math.abs(((bot + top) / 2 - checker));
+        double checkFrom = Math.abs((getCenterY() - checker));
         if (checkFrom > ON_PATH_RANGE_SLOPE) {
             Log.d(TAG, "onPathFunction: false --> cf/cker" + checkFrom + "/" + checker);
             return false;
@@ -140,12 +140,12 @@ public class Block implements BlockData {
             blockType = type.diamond;
             right = left + DIAMOND_SIZE;
             bot = top + DIAMOND_SIZE;
-            blockColor = Color.rgb(255, 0, 30);
+            blockColor = Color.rgb(106, 213, 254);
         } else {
             blockType = type.mine;
             right = left + MINE_LENGTH;
             bot = top + MINE_HEIGHT;
-            blockColor = Color.rgb(106, 213, 254);
+            blockColor = Color.rgb(255, 0, 30);
         }
     }
     public enum type {

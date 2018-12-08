@@ -11,10 +11,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
@@ -46,6 +48,7 @@ public class GameView extends View {
     private static final int HOOK_COLOR = Color.rgb(255,255,255);
     private static final int HOOK_STRING_COLOR = Color.rgb(255,0, 0);
     private static final int GAME_TIME = 10;
+    private static final int MAXIMUM_ON_GRAB_DEV = 55;
 
     private Bitmap mBitmap;
     private Canvas mCanvas;
@@ -85,32 +88,43 @@ public class GameView extends View {
     /** List of possible hit blocks. NOTE: ONLY BLOCK WITH LOWEST Y (TOP) WILL BE GRABBED */
     private ArrayList<BlockData> onPathBlock = new ArrayList<>();
 
-    private Button pauseBtn;
+    private ImageButton pauseBtn;
 
     private GameActivity gameActivity;
 
     public GameView(Context context, GameActivity gameActivity) {
         super(context);
         this.gameActivity = gameActivity;
-        init();
+        init(context);
     }
     public GameView(Context context, GameActivity gameActivity, int previousScore) {
         super(context);
         this.gameActivity = gameActivity;
-        init(previousScore);
+        init(context, previousScore);
     }
     public GameView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
-        init();
+        init(context);
     }
-    private void init() {
+    private void init(Context context) {
         initPaint();
         initStones();
         setInitTimeCounter();
+        initPauseBtn(context);
     }
-    private void init(int score) {
-        init();
+    private void init(Context context, int score) {
+        init(context);
         this.score = score;
+    }
+    private void initPauseBtn(Context context) {
+        pauseBtn = new ImageButton(context);
+        pauseBtn.setPadding(100, 200, 500, 600);
+        pauseBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.i(TAG, "onClick: pauseBtn clicked");
+            }
+        });
     }
     @Override
     protected void onDraw(Canvas canvas) {
@@ -280,7 +294,6 @@ public class GameView extends View {
                 BlockData tempB = onPathBlock.get(0);
                 capturedBlock.set((int) hookPositionX, (int) hookPositionY,
                         (int) (hookPositionX + tempB.getWidth()), (int) (hookPositionY + tempB.getHeight()));
-                Log.i(TAG, "onExtend: captured moving");
             }
         }
         if ((hookPositionY > screenHeight || hookPositionX < 0) || (hookPositionX < 0 || hookPositionX > screenWidth)) {
@@ -329,10 +342,10 @@ public class GameView extends View {
             }
         }
         if (onPathBlock.size() > 1) {
-            double smallestY = onPathBlock.get(0).getPositionY();
+            double smallestDistanceX = calculateDistance(onPathBlock.get(0));
             BlockData closest = onPathBlock.get(0);
             for (BlockData b : onPathBlock) {
-                if (b.getPositionY() < smallestY) {
+                if (calculateDistance(b) < smallestDistanceX) {
                     closest = b;
                 }
             }
@@ -343,7 +356,7 @@ public class GameView extends View {
 
     private boolean onGrab() {
         double distance = calculateDistance(onPathBlock.get(0));
-        if (distance <= HOOK_RADIUS + 50) {
+        if (distance <= HOOK_RADIUS + MAXIMUM_ON_GRAB_DEV) {
             Log.i(TAG, "onGrab: is grabbed");
             hook = hookStatus.retracting;
             for (BlockData b : blocks) {
@@ -390,7 +403,12 @@ public class GameView extends View {
     public static double getOnPathRange() {
         return (screenHeight - MINER_TOP) / (slopeY / slopeX);
     }
-
+    private double getOnPathBlockDistanceX(BlockData blockData) {
+        return Math.abs(blockData.getCenterX() - firePositionX);
+    }
+    private double getOnPathBlockDistanceY(BlockData blockData) {
+        return Math.abs(blockData.getCenterY() - firePositionY);
+    }
     public static double getMinerCenter() {
         return (MINER_LEFT + MINER_WIDTH/2);
     }

@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".GameActivity">
-    <FrameLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true"
@@ -15,11 +15,6 @@
             android:layout_width="fill_parent"
             android:layout_height="fill_parent"
             android:id="@+id/canvas">
-            <ImageButton
-                android:id="@+id/onPauseBtn"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:src="@drawable/ic_launcher_foreground"/>
             <TextView
                 android:id="@+id/displayTimeText"
                 android:layout_width="74dp"
@@ -29,6 +24,6 @@
                 android:textColor="@color/white"
                 android:textFontWeight="20" />
         </com.testapp.example.goldminer.GameView>
-    </FrameLayout>
+    </RelativeLayout>
 
 </android.support.constraint.ConstraintLayout>
