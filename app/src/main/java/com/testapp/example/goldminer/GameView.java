@@ -47,7 +47,7 @@ public class GameView extends View {
     private static final int GAME_TIME = 10;
     private static final int MAXIMUM_ON_GRAB_DEV = 55;
     private static final String TAG = "GoldMiner/GameView";
-    
+
     private Bitmap mBitmap;
     private Canvas mCanvas;
     private Paint mPaint;
@@ -343,9 +343,13 @@ public class GameView extends View {
             double smallestDistanceY = findIntersectionY(onPathBlock.get(0));
             BlockData closest = onPathBlock.get(0);
             for (BlockData b : onPathBlock) {
-                if (findIntersectionY(b) < smallestDistanceY) {
+                double tempDistanceY = findIntersectionY(b);
+                if (tempDistanceY < smallestDistanceY) {
                     closest = b;
+                    smallestDistanceY = tempDistanceY;
+                    Log.i(TAG, "setOnPathBlock: changed");
                 }
+                Log.i(TAG, "setOnPathBlock: smallestDistanceY " + smallestDistanceY);
             }
             onPathBlock.clear();
             onPathBlock.add(closest);
@@ -411,7 +415,7 @@ public class GameView extends View {
         return (MINER_LEFT + MINER_WIDTH / 2);
     }
     public static double getMinerCenterY() {
-        return (MINER_TOP + MINER_LENGTH / 2);
+        return (MINER_TOP);
     }
     public static double getOnPathSlope() {
         return (slopeY / slopeX);
@@ -430,13 +434,13 @@ public class GameView extends View {
             Log.d(TAG, "findIntersectionY: slope is null");
             return 0;
         }
-        if (blockMidSlope < fireSlope) {
+        if (blockMidSlope < Math.abs(fireSlope)) {
             return blockData.getTop();
         } else {
             if (fireSlope > 0) {
-                return (fireSlope * (blockData.getLeft() - getMinerCenterX()));
+                return Math.abs(fireSlope * (blockData.getLeft() - getMinerCenterX()));
             } else {
-                return ((-fireSlope) * (blockData.getRight() - getMinerCenterX()));
+                return Math.abs((fireSlope) * (blockData.getRight() - getMinerCenterX()));
             }
         }
     }

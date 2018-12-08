@@ -92,12 +92,13 @@ public class Block implements BlockData {
             slopes.put(slopeType.mid, Math.abs((top - centerY) / (right - centerX)));
         }
         fireSlope = Math.abs(fireSlope);
+//        Log.i(TAG, "isOnPath: is false");
+//        Log.d(TAG, "isOnPath: h " + slopes.get(slopeType.higher));
+//        Log.d(TAG, "isOnPath: l " + slopes.get(slopeType.lower));
+//        Log.d(TAG, "isOnPath: m " + slopes.get(slopeType.mid));
+//        Log.d(TAG, "isOnPath: fire " + fireSlope);
         if (fireSlope > slopes.get(slopeType.lower) || fireSlope < slopes.get(slopeType.higher)) {
-            Log.i(TAG, "isOnPath: is false");
-            Log.d(TAG, "isOnPath: h " + slopes.get(slopeType.higher));
-            Log.d(TAG, "isOnPath: l " + slopes.get(slopeType.lower));
-            Log.d(TAG, "isOnPath: m " + slopes.get(slopeType.mid));
-            Log.d(TAG, "isOnPath: fire " + fireSlope);
+            Log.d(TAG, "isOnPath: is false");
             return false;
         } else {
             Log.i(TAG, "isOnPath: is true");
