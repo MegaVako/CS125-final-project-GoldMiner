@@ -15,10 +15,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.PopupWindow;
-import android.widget.TextView;
 
 import java.util.ArrayList;
 
@@ -49,11 +46,12 @@ public class GameView extends View {
     private static final int HOOK_STRING_COLOR = Color.rgb(255,0, 0);
     private static final int GAME_TIME = 10;
     private static final int MAXIMUM_ON_GRAB_DEV = 55;
-
+    private static final String TAG = "GoldMiner/GameView";
+    
     private Bitmap mBitmap;
     private Canvas mCanvas;
     private Paint mPaint;
-    private String TAG = "GoldMiner/GameView";
+
 
     private ArrayList<BlockData> blocks = new ArrayList<>(MAXIMUM_NUMBER_OF_BLOCKS);
     private Rect capturedBlock = new Rect(1,2,3,4);
@@ -342,10 +340,10 @@ public class GameView extends View {
             }
         }
         if (onPathBlock.size() > 1) {
-            double smallestDistanceX = calculateDistance(onPathBlock.get(0));
+            double smallestDistanceY = findIntersectionY(onPathBlock.get(0));
             BlockData closest = onPathBlock.get(0);
             for (BlockData b : onPathBlock) {
-                if (calculateDistance(b) < smallestDistanceX) {
+                if (findIntersectionY(b) < smallestDistanceY) {
                     closest = b;
                 }
             }
@@ -409,15 +407,37 @@ public class GameView extends View {
     private double getOnPathBlockDistanceY(BlockData blockData) {
         return Math.abs(blockData.getCenterY() - firePositionY);
     }
-    public static double getMinerCenter() {
-        return (MINER_LEFT + MINER_WIDTH/2);
+    public static double getMinerCenterX() {
+        return (MINER_LEFT + MINER_WIDTH / 2);
     }
-
+    public static double getMinerCenterY() {
+        return (MINER_TOP + MINER_LENGTH / 2);
+    }
     public static double getOnPathSlope() {
         return (slopeY / slopeX);
     }
 
     public static double getFirePositionX() {
         return firePositionX;
+    }
+
+    private double findIntersectionY(BlockData blockData) {
+        double fireSlope = slopeY / slopeX;
+        double blockMidSlope = 0;
+        try {
+            blockMidSlope = blockData.getSlopes().get(Block.slopeType.mid);
+        } catch (NullPointerException e) {
+            Log.d(TAG, "findIntersectionY: slope is null");
+            return 0;
+        }
+        if (blockMidSlope < fireSlope) {
+            return blockData.getTop();
+        } else {
+            if (fireSlope > 0) {
+                return (fireSlope * (blockData.getLeft() - getMinerCenterX()));
+            } else {
+                return ((-fireSlope) * (blockData.getRight() - getMinerCenterX()));
+            }
+        }
     }
 }

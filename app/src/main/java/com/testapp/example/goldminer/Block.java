@@ -4,6 +4,8 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import android.util.Log;
 
+import java.util.HashMap;
+
 public class Block implements BlockData {
     private static final int RATE = 1000;
     private static final int GOLD_RATE = (int) ((1 - 0.5) * RATE);
@@ -17,6 +19,7 @@ public class Block implements BlockData {
     private static final int ON_PATH_RANGE_SLOPE  = 145;
     private static final int ON_PATH_RANGE_STRAIGHT = 145;
 
+    private HashMap<slopeType, Double> slopes = new HashMap<>(3);
     private Rect currentBlock;
     private type blockType;
     private int left;
@@ -74,32 +77,32 @@ public class Block implements BlockData {
 
     @Override
     public boolean isOnPath() {
-        //Step one
-        double rangeX = GameView.getOnPathRange();
-        double minerCenter = GameView.getMinerCenter();
-        double slope = GameView.getOnPathSlope();
-        double hookFirePositionX = GameView.getFirePositionX();
-        if (rangeX < 0) {
-            if (left < minerCenter + rangeX) {
-                return false;
-            }
+        //Log.i(TAG, "isOnPath: CALLED");
+        double centerX = GameView.getMinerCenterX();
+        double centerY = GameView.getMinerCenterY();
+        //Compare to this slope!
+        double fireSlope = GameView.getOnPathSlope();
+        if (fireSlope > 0) {
+            slopes.put(slopeType.higher, Math.abs((top - centerY) / (right - centerX)));
+            slopes.put(slopeType.lower, Math.abs((bot - centerY) / (left - centerX)));
+            slopes.put(slopeType.mid, Math.abs((top - centerY) / (left - centerX)));
         } else {
-            if (left > minerCenter + rangeX) {
-                return false;
-            }
+            slopes.put(slopeType.higher, Math.abs((top - centerY) / (left - centerX)));
+            slopes.put(slopeType.lower, Math.abs((bot - centerY) / (right - centerX)));
+            slopes.put(slopeType.mid, Math.abs((top - centerY) / (right - centerX)));
         }
-        if (Math.abs(slope) > 3.5) {
-            double fromFirePosition = Math.abs(hookFirePositionX - getCenterX());
-            if (fromFirePosition < ON_PATH_RANGE_STRAIGHT) {
-                return true;
-            }
-            Log.i(TAG, "isOnPath: from fire Position = " + fromFirePosition);
-        }
-        //Step two
-        if (!onPathFunction(slope, minerCenter)) {
+        fireSlope = Math.abs(fireSlope);
+        if (fireSlope > slopes.get(slopeType.lower) || fireSlope < slopes.get(slopeType.higher)) {
+            Log.i(TAG, "isOnPath: is false");
+            Log.d(TAG, "isOnPath: h " + slopes.get(slopeType.higher));
+            Log.d(TAG, "isOnPath: l " + slopes.get(slopeType.lower));
+            Log.d(TAG, "isOnPath: m " + slopes.get(slopeType.mid));
+            Log.d(TAG, "isOnPath: fire " + fireSlope);
             return false;
+        } else {
+            Log.i(TAG, "isOnPath: is true");
+            return true;
         }
-        return true;
     }
 
     @Override
@@ -107,25 +110,24 @@ public class Block implements BlockData {
         return currentBlock;
     }
 
-    private boolean onPathFunction(double slope, double minerCenter) {
-        double distanceToMincerCenter = Math.abs(minerCenter - (right + left) / 2);
-        if (slope > 0) {
-            if (right < minerCenter) {
-                return false;
-            }
-        } else {
-            if (left > minerCenter) {
-                return false;
-            }
-        }
-        Log.d(TAG, "isOnPath: pass one");
-        double checker = Math.abs(slope * (distanceToMincerCenter));
-        double checkFrom = Math.abs((getCenterY() - checker));
-        if (checkFrom > ON_PATH_RANGE_SLOPE) {
-            Log.d(TAG, "onPathFunction: false --> cf/cker" + checkFrom + "/" + checker);
-            return false;
-        }
-        return true;
+    @Override
+    public HashMap<slopeType, Double> getSlopes() {
+        return slopes;
+    }
+
+    @Override
+    public double getTop() {
+        return top;
+    }
+
+    @Override
+    public double getLeft() {
+        return left;
+    }
+
+    @Override
+    public double getRight() {
+        return right;
     }
 
     private void setBlockType() {
@@ -153,5 +155,10 @@ public class Block implements BlockData {
     }
     private void setBlock() {
         currentBlock = new Rect(left, top, right, bot);
+    }
+    //types of slope
+    public enum slopeType {
+        //higher for smaller y
+        higher, lower, mid
     }
 }

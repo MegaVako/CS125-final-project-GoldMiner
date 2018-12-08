@@ -2,6 +2,8 @@ package com.testapp.example.goldminer;
 
 import android.graphics.Rect;
 
+import java.util.HashMap;
+
 public interface BlockData {
     double getPositionX();
     double getPositionY();
@@ -13,4 +15,8 @@ public interface BlockData {
     double getHeight();
     boolean isOnPath();
     Rect getBlock();
+    HashMap<Block.slopeType, Double> getSlopes();
+    double getTop();
+    double getLeft();
+    double getRight();
 }
