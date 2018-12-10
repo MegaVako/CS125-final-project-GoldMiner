@@ -5,7 +5,7 @@
     android:background="#FFFF"
     android:gravity="center"
     android:orientation="vertical"
-    android:padding="10dp">
+    android:padding="5dp">
 
     <TextView
         android:id="@+id/popupText"
@@ -14,9 +14,14 @@
         android:text="Current score: ASD"
         android:textColor="#000" />
     <Button
-        android:id="@+id/closePopupBtn"
+        android:id="@+id/nextGameBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Next" />
+    <Button
+        android:id="@+id/quitGameBtn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Quit"/>
 
 </LinearLayout>

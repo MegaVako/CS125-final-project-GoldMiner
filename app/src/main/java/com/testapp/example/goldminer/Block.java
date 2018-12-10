@@ -27,6 +27,8 @@ public class Block implements BlockData {
     private int right;
     private int bot;
     private int blockColor;
+    private int value;
+
     Block (int left, int top, int right, int bot){
         this.left = left;
         this.top = top;
@@ -131,24 +133,33 @@ public class Block implements BlockData {
         return right;
     }
 
+    @Override
+    public int getValue() {
+        return value;
+    }
+
     private void setBlockType() {
         int rate = (left * right * top * bot) % RATE;
         if (rate < GOLD_RATE) {
             blockType = type.gold;
             blockColor = Color.rgb(250,214,0);
+            value = 100;
         } else if (rate < STONE_RATE) {
             blockType = type.stone;
             blockColor = Color.GRAY;
+            value = 30;
         } else if (rate < DIAMOND_RATE) {
             blockType = type.diamond;
             right = left + DIAMOND_SIZE;
             bot = top + DIAMOND_SIZE;
             blockColor = Color.rgb(106, 213, 254);
+            value = 300;
         } else {
             blockType = type.mine;
             right = left + MINE_LENGTH;
             bot = top + MINE_HEIGHT;
             blockColor = Color.rgb(255, 0, 30);
+            value = 0;
         }
     }
     public enum type {

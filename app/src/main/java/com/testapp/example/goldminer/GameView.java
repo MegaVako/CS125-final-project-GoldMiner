@@ -70,8 +70,6 @@ public class GameView extends View {
 
     private hookStatus hook = hookStatus.stop;
 
-    private int score = 0;
-
     /** Record fire position X/Y */
     private static double firePositionY = 0;
     private static double firePositionX = 0;
@@ -86,19 +84,25 @@ public class GameView extends View {
     /** List of possible hit blocks. NOTE: ONLY BLOCK WITH LOWEST Y (TOP) WILL BE GRABBED */
     private ArrayList<BlockData> onPathBlock = new ArrayList<>();
 
+    private int playerScore;
+
     private ImageButton pauseBtn;
 
     private GameActivity gameActivity;
 
+
+
     public GameView(Context context, GameActivity gameActivity) {
         super(context);
         this.gameActivity = gameActivity;
+        playerScore = 0;
         init(context);
     }
     public GameView(Context context, GameActivity gameActivity, int previousScore) {
         super(context);
         this.gameActivity = gameActivity;
-        init(context, previousScore);
+        playerScore = previousScore;
+        init(context);
     }
     public GameView(Context context, AttributeSet attributeSet) {
         super(context, attributeSet);
@@ -109,10 +113,6 @@ public class GameView extends View {
         initStones();
         setInitTimeCounter();
         initPauseBtn(context);
-    }
-    private void init(Context context, int score) {
-        init(context);
-        this.score = score;
     }
     private void initPauseBtn(Context context) {
         pauseBtn = new ImageButton(context);
@@ -380,6 +380,9 @@ public class GameView extends View {
     }
     private void onReturnToSwing() {
         hook = hookStatus.swinging;
+        if (isCaptured && onPathBlock.size() == 1) {
+            playerScore += onPathBlock.get(0).getValue();
+        }
         isCaptured = false;
         onPathBlock.clear();
         Log.i(TAG, "onExtend: done retracting " + onPathBlock.size());
@@ -390,17 +393,14 @@ public class GameView extends View {
     }
     private void onFinishGame() {
         try {
-            gameActivity.onPopup(gameActivity);
+            gameActivity.onPopup(gameActivity, playerScore);
             handler.removeCallbacks(movementRunnable);
         } catch (NullPointerException e) {
             Log.d(TAG, "onFinishGame: nullPointer GA = " + gameActivity + e.getMessage());
         }
     }
-    private void setScore(int score) {
-        this.score = score;
-    }
     public int getScore() {
-        return score;
+        return playerScore;
     }
     public static double getOnPathRange() {
         return (screenHeight - MINER_TOP) / (slopeY / slopeX);

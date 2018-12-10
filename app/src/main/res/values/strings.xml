@@ -1,8 +1,9 @@
 <resources>
     <string name="app_name">GoldMiner</string>
-
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="main_message">Tab to continue</string>
     <string name="title_activity_game">GameActivity</string>
+    <string name="app_id">1077648214639</string>
+    <string name="number_guesses_leaderboard">CgkI75Tbxq4fEAIQAQ</string>
 </resources>

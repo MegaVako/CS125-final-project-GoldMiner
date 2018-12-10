@@ -18,6 +18,8 @@ import android.widget.PopupWindow;
 import android.view.ViewGroup.LayoutParams;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 public class GameActivity extends AppCompatActivity {
     //==============================================================
     // ## My variables ##
@@ -27,7 +29,8 @@ public class GameActivity extends AppCompatActivity {
     private static int screenWidth;
 
     private static GameView gameView;
-    private static Button closePopupBtn;
+    private static Button nextGameBtn;
+    private static Button quitGameBtn;
     private PopupWindow popupWindow;
     private static GameActivity gameActivity;
     private TextView timeTrackingTextView;
@@ -87,24 +90,32 @@ public class GameActivity extends AppCompatActivity {
         return change;
     }
 
-    public void onPopup(GameActivity gameActivity) {
+    public void onPopup(GameActivity gameActivity, int currentScore) {
         Log.i(TAG, "onPopup: is called ");
         LayoutInflater layoutInflater = (LayoutInflater) gameActivity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View customView = layoutInflater.inflate(R.layout.gameover_popup,null);
 
-        closePopupBtn = (Button) customView.findViewById(R.id.closePopupBtn);
-
         //instantiate popup window
         popupWindow = new PopupWindow(customView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-
-        //display the popup window
+        ((TextView) popupWindow.getContentView().findViewById(R.id.popupText)).setText("Your score " + currentScore);
         popupWindow.showAtLocation(gameView, Gravity.CENTER, 0, 0);
-        closePopupBtn.setOnClickListener(new View.OnClickListener() {
+
+        nextGameBtn = (Button) customView.findViewById(R.id.nextGameBtn);
+        nextGameBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 popupWindow.dismiss();
-                Log.d(TAG, "onClick: after dismiss");
+                Log.d(TAG, "onClick: next game");
                 createNewGame();
+            }
+        });
+        quitGameBtn = (Button) customView.findViewById(R.id.quitGameBtn);
+        quitGameBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                popupWindow.dismiss();
+                Log.d(TAG, "onClick: quit game");
+                quitToMain();
             }
         });
     }
@@ -117,5 +128,9 @@ public class GameActivity extends AppCompatActivity {
         gameView = (GameView) findViewById(R.id.canvas);
         gameView = new GameView(GameActivity.this, this, tempScore);
         setContentView(gameView);
+    }
+    private void quitToMain() {
+        Intent change = MainActivity.createIntent(gameActivity);
+        startActivity(change);
     }
 }

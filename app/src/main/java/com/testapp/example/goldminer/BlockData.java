@@ -19,4 +19,5 @@ public interface BlockData {
     double getTop();
     double getLeft();
     double getRight();
+    int getValue();
 }
