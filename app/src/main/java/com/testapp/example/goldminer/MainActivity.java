@@ -1,8 +1,10 @@
 package com.testapp.example.goldminer;
 
 import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -10,14 +12,23 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
+import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.games.AchievementsClient;
 import com.google.android.gms.games.EventsClient;
+import com.google.android.gms.games.Games;
 import com.google.android.gms.games.LeaderboardsClient;
+import com.google.android.gms.games.Player;
 import com.google.android.gms.games.PlayersClient;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
 
 /**
  * An example full-screen activity that shows and hides the system UI (i.e.
@@ -109,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private EventsClient mEventsClient;
     private PlayersClient mPlayersClient;
 
-    final static int[] CLICKABLES = {
+    private final static int[] CLICKABLES = {
             R.id.sign_in_button, R.id.sign_out_button,
             R.id.quick_start_btn
     };
@@ -213,28 +224,121 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startGame();
                 Log.i(TAG, "onClick: quickStart clicked");
                 break;
+                //case R.id
+            //onShowLeaderboardsRequested();
+            //break;
+
         }
     }
-//    private void signInSilently() {
-//        Log.d(TAG, "signInSilently()");
-//
-//        mGoogleSignInClient.silentSignIn().addOnCompleteListener(this,
-//                new OnCompleteListener<GoogleSignInAccount>() {
-//                    @Override
-//                    public void onComplete(@NonNull Task<GoogleSignInAccount> task) {
-//                        if (task.isSuccessful()) {
-//                            Log.d(TAG, "signInSilently(): success");
-//                            onConnected(task.getResult());
-//                        } else {
-//                            Log.d(TAG, "signInSilently(): failure", task.getException());
-//                            onDisconnected();
-//                        }
-//                    }
-//                });
-//    }
+    private void signInSilently() {
+        Log.d(TAG, "signInSilently()");
+
+        mGoogleSignInClient.silentSignIn().addOnCompleteListener(this,
+                new OnCompleteListener<GoogleSignInAccount>() {
+                    @Override
+                    public void onComplete(@NonNull Task<GoogleSignInAccount> task) {
+                        if (task.isSuccessful()) {
+                            Log.d(TAG, "signInSilently(): success");
+                            onConnected(task.getResult());
+                        } else {
+                            Log.d(TAG, "signInSilently(): failure", task.getException());
+                            onDisconnected();
+                        }
+                    }
+                });
+    }
 
     public static Intent createIntent(Context previousActivity) {
         Intent change = new Intent(previousActivity, MainActivity.class);
         return change;
+    }
+
+    public void onShowLeaderboardsRequested() {
+        mLeaderboardsClient.getAllLeaderboardsIntent()
+                .addOnSuccessListener(new OnSuccessListener<Intent>() {
+                    @Override
+                    public void onSuccess(Intent intent) {
+                        startActivityForResult(intent, RC_UNUSED);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        handleException(e, getString(R.string.leaderboards_exception));
+                    }
+                });
+    }
+    private void handleException(Exception e, String details) {
+        int status = 0;
+
+        if (e instanceof ApiException) {
+            ApiException apiException = (ApiException) e;
+            status = apiException.getStatusCode();
+        }
+
+        String message = getString(R.string.status_exception_error, details, status, e);
+
+        new AlertDialog.Builder(MainActivity.this)
+                .setMessage(message)
+                .setNeutralButton(android.R.string.ok, null)
+                .show();
+    }
+    private void pushAccomplishments() {
+        if (!isSignedIn()) {
+            return;
+        } else {
+            mLeaderboardsClient.submitScore("GoldMiner v1.0", GameActivity.getScore());
+        }
+    }
+    private boolean isSignedIn() {
+        return GoogleSignIn.getLastSignedInAccount(this) != null;
+    }
+    private void onConnected(GoogleSignInAccount googleSignInAccount) {
+        Log.d(TAG, "onConnected(): connected to Google APIs");
+
+        mAchievementsClient = Games.getAchievementsClient(this, googleSignInAccount);
+        mLeaderboardsClient = Games.getLeaderboardsClient(this, googleSignInAccount);
+        mEventsClient = Games.getEventsClient(this, googleSignInAccount);
+        mPlayersClient = Games.getPlayersClient(this, googleSignInAccount);
+    }
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent intent) {
+        super.onActivityResult(requestCode, resultCode, intent);
+        if (requestCode == RC_SIGN_IN) {
+            Task<GoogleSignInAccount> task =
+                    GoogleSignIn.getSignedInAccountFromIntent(intent);
+
+            try {
+                GoogleSignInAccount account = task.getResult(ApiException.class);
+                onConnected(account);
+            } catch (ApiException apiException) {
+                String message = apiException.getMessage();
+                if (message == null || message.isEmpty()) {
+                    message = getString(R.string.signin_other_error);
+                }
+
+                onDisconnected();
+
+                new AlertDialog.Builder(this)
+                        .setMessage(message)
+                        .setNeutralButton(android.R.string.ok, null)
+                        .show();
+            }
+        }
+    }
+    private void onDisconnected() {
+        Log.d(TAG, "onDisconnected()");
+        mAchievementsClient = null;
+        mLeaderboardsClient = null;
+        mPlayersClient = null;
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume()");
+
+        // Since the state of the signed in user can change when the activity is not active
+        // it is recommended to try and sign in silently from when the app resumes.
+        signInSilently();
     }
 }

@@ -35,6 +35,7 @@ public class GameActivity extends AppCompatActivity {
     private static GameActivity gameActivity;
     private TextView timeTrackingTextView;
     private ImageButton pauseBtn;
+    private static int savedScore = 0;
     //==============================================================
     // ## My variables ##
     //==============================================================
@@ -95,6 +96,8 @@ public class GameActivity extends AppCompatActivity {
         LayoutInflater layoutInflater = (LayoutInflater) gameActivity.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         View customView = layoutInflater.inflate(R.layout.gameover_popup,null);
 
+        savedScore = currentScore;
+
         //instantiate popup window
         popupWindow = new PopupWindow(customView, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
         ((TextView) popupWindow.getContentView().findViewById(R.id.popupText)).setText("Your score " + currentScore);
@@ -128,9 +131,16 @@ public class GameActivity extends AppCompatActivity {
         gameView = (GameView) findViewById(R.id.canvas);
         gameView = new GameView(GameActivity.this, this, tempScore);
         setContentView(gameView);
+        resetSavedScore();
     }
     private void quitToMain() {
         Intent change = MainActivity.createIntent(gameActivity);
         startActivity(change);
+    }
+    public static int getScore() {
+        return savedScore;
+    }
+    private static void resetSavedScore() {
+        savedScore = 0;
     }
 }

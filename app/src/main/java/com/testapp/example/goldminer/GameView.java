@@ -41,12 +41,18 @@ public class GameView extends View {
     private static final Rect BACKGROUND = new Rect(0, 0, 2000,2000);
     private static final int HOOK_INIT_Y = 50;
     private static final int HOOK_INIT_X = 800;
+
     private static final int MINER_COLOR = Color.rgb(200,100,200);
     private static final int HOOK_COLOR = Color.rgb(255,255,255);
     private static final int HOOK_STRING_COLOR = Color.rgb(255,0, 0);
+    private static final int TIMER_COLOR = Color.WHITE;
+
     private static final int GAME_TIME = 10;
     private static final int MAXIMUM_ON_GRAB_DEV = 55;
     private static final String TAG = "GoldMiner/GameView";
+    private final float TIMER_TEXT_SIZE = 48f;
+    private static final int TIMER_X = 1700;
+    private static final int TIMER_Y = 50;
 
     private Bitmap mBitmap;
     private Canvas mCanvas;
@@ -57,8 +63,6 @@ public class GameView extends View {
     private Rect capturedBlock = new Rect(1,2,3,4);
     private float hookPositionX = 800;
     private float hookPositionY = 50;
-    /** Time tracking textView */
-
 
     private double gameTimeCounter = 0;
     
@@ -113,6 +117,7 @@ public class GameView extends View {
         initStones();
         setInitTimeCounter();
         initPauseBtn(context);
+        mPaint.setTextSize(TIMER_TEXT_SIZE);
     }
     private void initPauseBtn(Context context) {
         pauseBtn = new ImageButton(context);
@@ -153,6 +158,10 @@ public class GameView extends View {
         //Draw hook
         mPaint.setColor(HOOK_COLOR);
         canvas.drawCircle(hookPositionX, hookPositionY, HOOK_RADIUS, mPaint);
+
+        //Draw Time
+        mPaint.setColor(TIMER_COLOR);
+        canvas.drawText(String.valueOf(displayTime), TIMER_X, TIMER_Y, mPaint);
     }
     @Override
     protected void onSizeChanged(int w, int h, int oldW, int oldH) {
