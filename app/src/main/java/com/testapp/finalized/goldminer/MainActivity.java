@@ -1,4 +1,4 @@
-package com.testapp.example.goldminer;
+package com.testapp.finalized.goldminer;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -12,7 +12,6 @@ import android.os.Handler;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Toast;
 
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
@@ -23,7 +22,6 @@ import com.google.android.gms.games.AchievementsClient;
 import com.google.android.gms.games.EventsClient;
 import com.google.android.gms.games.Games;
 import com.google.android.gms.games.LeaderboardsClient;
-import com.google.android.gms.games.Player;
 import com.google.android.gms.games.PlayersClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
@@ -122,7 +120,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private final static int[] CLICKABLES = {
             R.id.sign_in_button, R.id.sign_out_button,
-            R.id.quick_start_btn
+            R.id.quick_start_btn, R.id.leaderboardBtn
     };
 
     //========================================================================================
@@ -150,6 +148,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         for (int id : CLICKABLES) {
             findViewById(id).setOnClickListener(this);
         }
+        pushAccomplishments();
     }
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -219,11 +218,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startSignInIntent();
                 break;
             case R.id.sign_out_button:
+                signOut();
                 break;
             case R.id.quick_start_btn:
                 startGame();
                 Log.i(TAG, "onClick: quickStart clicked");
                 break;
+            case R.id.leaderboardBtn:
+                onShowLeaderboardsRequested();
+                Log.i(TAG, "onClick: leaderBoard clicked");
+                break;
+
                 //case R.id
             //onShowLeaderboardsRequested();
             //break;
@@ -232,7 +237,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
     private void signInSilently() {
         Log.d(TAG, "signInSilently()");
-
         mGoogleSignInClient.silentSignIn().addOnCompleteListener(this,
                 new OnCompleteListener<GoogleSignInAccount>() {
                     @Override
@@ -246,6 +250,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         }
                     }
                 });
+//        mGoogleSignInClient.silentSignIn().addOnCompleteListener(this, new OnCompleteListener<GoogleSignInAccount>() {
+//            @Override
+//            public void onComplete(@NonNull Task<GoogleSignInAccount> task) {
+//                if (task.isSuccessful()) {
+//                    try {
+//                        GoogleSignInAccount signInAccount = task.getResult(ApiException.class);
+//                    } catch (ApiException apiException) {
+//                        System.out.println("CATE_RESULT_CODE " + apiException.getLocalizedMessage()+" " +apiException.getStatusMessage()+ " " +apiException.getMessage()+ " "+apiException.getCause() );
+//                    }
+//                } else {
+//                    try {
+//                        GoogleSignInAccount signInAccount = task.getResult(ApiException.class);
+//                    } catch (ApiException apiException) {
+//                        System.out.println("CATE_RESULT_CODE " + apiException.getLocalizedMessage()+" " +apiException.getStatusMessage()+ " " +apiException.getMessage()+ " "+apiException.getCause() );
+//                    }
+//                }
+//            }
+//        });
     }
 
     public static Intent createIntent(Context previousActivity) {
@@ -293,6 +315,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean isSignedIn() {
         return GoogleSignIn.getLastSignedInAccount(this) != null;
     }
+
     private void onConnected(GoogleSignInAccount googleSignInAccount) {
         Log.d(TAG, "onConnected(): connected to Google APIs");
 
@@ -316,9 +339,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 if (message == null || message.isEmpty()) {
                     message = getString(R.string.signin_other_error);
                 }
-
                 onDisconnected();
-
                 new AlertDialog.Builder(this)
                         .setMessage(message)
                         .setNeutralButton(android.R.string.ok, null)
@@ -340,5 +361,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         // Since the state of the signed in user can change when the activity is not active
         // it is recommended to try and sign in silently from when the app resumes.
         signInSilently();
+    }
+    private void signOut() {
+        Log.d(TAG, "signOut()");
+
+        if (!isSignedIn()) {
+            Log.w(TAG, "signOut() called, but was not signed in!");
+            return;
+        }
+
+        mGoogleSignInClient.signOut().addOnCompleteListener(this,
+                new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        boolean successful = task.isSuccessful();
+                        Log.d(TAG, "signOut(): " + (successful ? "success" : "failed"));
+
+                        onDisconnected();
+                    }
+                });
     }
 }
