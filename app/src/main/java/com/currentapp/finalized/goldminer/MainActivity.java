@@ -1,4 +1,4 @@
-package com.testapp.finalized.goldminer;
+package com.currentapp.finalized.goldminer;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -143,12 +143,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
 
         });
-
         mGoogleSignInClient = GoogleSignIn.getClient(this, GoogleSignInOptions.DEFAULT_GAMES_SIGN_IN);
         for (int id : CLICKABLES) {
             findViewById(id).setOnClickListener(this);
         }
-        pushAccomplishments();
     }
     @Override
     protected void onPostCreate(Bundle savedInstanceState) {
@@ -244,6 +242,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         if (task.isSuccessful()) {
                             Log.d(TAG, "signInSilently(): success");
                             onConnected(task.getResult());
+                            pushAccomplishments();
                         } else {
                             Log.d(TAG, "signInSilently(): failure", task.getException());
                             onDisconnected();
@@ -306,10 +305,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .show();
     }
     private void pushAccomplishments() {
+        Log.i(TAG, "pushAccomplishments: called");
         if (!isSignedIn()) {
             return;
         } else {
-            mLeaderboardsClient.submitScore("GoldMiner v1.0", GameActivity.getScore());
+            try {
+                mLeaderboardsClient.submitScore("CgkI5KC5_YoVEAIQAQ", GameActivity.getScore());
+                Log.i(TAG, "pushAccomplishments: check score" + GameActivity.getScore());
+            } catch (NullPointerException e) {
+                Log.i(TAG, "pushAccomplishments: cant submitScore " + "\n" + e.getMessage());
+            }
         }
     }
     private boolean isSignedIn() {
@@ -318,11 +323,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void onConnected(GoogleSignInAccount googleSignInAccount) {
         Log.d(TAG, "onConnected(): connected to Google APIs");
-
         mAchievementsClient = Games.getAchievementsClient(this, googleSignInAccount);
         mLeaderboardsClient = Games.getLeaderboardsClient(this, googleSignInAccount);
         mEventsClient = Games.getEventsClient(this, googleSignInAccount);
         mPlayersClient = Games.getPlayersClient(this, googleSignInAccount);
+        pushAccomplishments();
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent intent) {

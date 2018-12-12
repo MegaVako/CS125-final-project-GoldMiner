@@ -1,4 +1,4 @@
-package com.testapp.finalized.goldminer;
+package com.currentapp.finalized.goldminer;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -45,7 +45,7 @@ public class GameView extends View {
     private static final int HOOK_STRING_COLOR = Color.rgb(255,0, 0);
     private static final int TIMER_COLOR = Color.WHITE;
 
-    private static final int GAME_TIME = 10;
+    private static final int GAME_TIME = 30;
     private static final int MAXIMUM_ON_GRAB_DEV = 55;
     private static final String TAG = "GoldMiner/GameView";
     private final float TIMER_TEXT_SIZE = 48f;

@@ -1,4 +1,4 @@
-package com.testapp.finalized.goldminer;
+package com.currentapp.finalized.goldminer;
 
 import android.graphics.Rect;
 
