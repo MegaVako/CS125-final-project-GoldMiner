@@ -296,9 +296,7 @@ public class GameView extends View {
             hookPositionX -= (HOOK_EXTEND_RATE * slopeX);
             hookPositionY -= (HOOK_EXTEND_RATE * slopeY);
             if (isCaptured) {
-                BlockData tempB = onPathBlock.get(0);
-                capturedBlock.set((int) hookPositionX, (int) hookPositionY,
-                        (int) (hookPositionX + tempB.getWidth()), (int) (hookPositionY + tempB.getHeight()));
+                updateCapturedBlock();
             }
         }
         if ((hookPositionY > screenHeight || hookPositionX < 0) || (hookPositionX < 0 || hookPositionX > screenWidth)) {
@@ -374,6 +372,7 @@ public class GameView extends View {
                     break;
                 }
             }
+            updateCapturedBlock();
             return true;
         }
         Log.i(TAG, "onGrab: not hit d = " + distance);
@@ -391,7 +390,7 @@ public class GameView extends View {
             playerScore += onPathBlock.get(0).getValue();
         }
         isCaptured = false;
-        onPathBlock.clear();
+        onPathBlock = new ArrayList<>();
         Log.i(TAG, "onExtend: done retracting " + onPathBlock.size());
     }
     private void onHookReCenter() {
@@ -450,5 +449,12 @@ public class GameView extends View {
                 return Math.abs((fireSlope) * (blockData.getRight() - getMinerCenterX()));
             }
         }
+    }
+    private void updateCapturedBlock() {
+        BlockData tempB = onPathBlock.get(0);
+        capturedBlock.set((int) hookPositionX,
+                (int) hookPositionY,
+                (int) (hookPositionX + tempB.getWidth()),
+                (int) (hookPositionY + tempB.getHeight()));
     }
 }
