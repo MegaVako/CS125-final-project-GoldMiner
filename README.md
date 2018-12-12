@@ -2,7 +2,7 @@
 Hi this is Yan Sun, aka Simon
 
 If you want to test this, do the following
-  1. Install the apk in your emulator
+  1. Install the apk in your emulator.
     I personally use the following steps
       go to android sdk
       go to platform-tools
